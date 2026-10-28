@@ -3,148 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Teclado Colorido (HTML Puro)</title>
-    <style>
-        /* --- CSS EMBUTIDO --- */
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            background-color: #111; /* Fundo escuro */
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            height: 100vh;
-            overflow: hidden; /* Esconde barras de rolagem */
-            color: #ddd;
-        }
-        h1 {
-            color: #eee;
-            margin-top: 20px;
-        }
-        nav {
-            margin-bottom: 20px;
-        }
-        .instructions {
-            text-align: center;
-            margin-bottom: 10px;
-            font-size: 1.1em;
-        }
-        #stage {
-            width: 90vw;
-            height: 80vh;
-            background-color: #222; 
-            position: relative;
-            border-radius: 10px;
-            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
-        }
-        .note-bubble {
-            position: absolute;
-            border-radius: 50%;
-            transition: transform 0.8s ease-out, opacity 0.8s ease-out;
-            pointer-events: none;
-            opacity: 1;
-            box-shadow: 0 0 15px rgba(255, 255, 255, 0.7);
-        }
-        a {
-            border: none;
-            padding: 10px 20px;
-            text-align: center;
-            font-size: 16px;
-            cursor: pointer;
-            border-radius: 5px;
-            transition: background-color 0.3s;
-            color: white;
-            text-decoration: none;
-        }
-    </style>
+    <title>Sinestinseut: Teclado Colorido</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body class="pagina-teclado">
     <h1>🎹 Teclado Colorido</h1>
+    <p class="subtitulo">Cada cor é uma nota. Toque nas teclas e veja as bolhas subirem!</p>
 
-    <nav>
-        <a href="desenho.html" style="background-color: #007bff; margin-right: 15px;">Página de Desenho</a>
-        |
-        <a href="teclado_colorido.html" style="background-color: #4CAF50; margin-left: 15px;">Teclado Colorido</a>
+    <nav class="nav-paginas" aria-label="Páginas">
+        <a href="index.html">🎨 Desenhar</a>
+        <a href="gerador_mobile.html">📱 Desenhar (sem servidor)</a>
+        <a href="teclado_mobile.html" aria-current="page">🎹 Teclado<span class="nav-extra"> Colorido</span></a>
     </nav>
 
-    <p class="instructions">Use as teclas **A, S, D, F, G, H, J, K** (e W, E, T, Y, U) para tocar!</p>
-    
-    <div id="stage"></div>
+    <main>
+        <div id="stage" aria-hidden="true"></div>
+
+        <div class="teclas" id="teclas" role="group" aria-label="Teclas coloridas"></div>
+
+        <p class="instructions so-teclado-fisico">
+            No computador, use também as teclas
+            <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> <kbd>F</kbd> <kbd>G</kbd> <kbd>H</kbd> <kbd>J</kbd> <kbd>K</kbd>
+            (e <kbd>W</kbd> <kbd>E</kbd> <kbd>T</kbd> <kbd>Y</kbd> <kbd>U</kbd>) para tocar!
+        </p>
+    </main>
 
     <script>
         // --- VARIÁVEIS E CONSTANTES ---
         const stage = document.getElementById('stage');
+        const teclas = document.getElementById('teclas');
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         const audioCtx = new AudioContext();
-        
+
         const A4_FREQ = 440.0;
         const C4_FREQ = A4_FREQ * (2**(-9/12));
 
         // Mapeamento de Tecla para o Matiz (Hue)
         const keyToHue = {
-            'a': 0, 'w': 30, 's': 60, 'e': 90, 'd': 120, 'f': 150, 
+            'a': 0, 'w': 30, 's': 60, 'e': 90, 'd': 120, 'f': 150,
             't': 180, 'g': 210, 'y': 240, 'h': 270, 'u': 300, 'j': 330, 'k': 360
         };
+
+        const nomesNotas = ['Dó', 'Dó#', 'Ré', 'Ré#', 'Mi', 'Fá', 'Fá#', 'Sol', 'Sol#', 'Lá', 'Lá#', 'Si', 'Dó'];
 
         const activeOscillators = {};
 
         // --- FUNÇÕES DE ÁUDIO E VISUALIZAÇÃO ---
 
         function hueToFrequency(hue) {
-            hue = hue % 360;
-            const semitonesFromC4 = (hue / 360.0) * 12; 
-            const frequency = C4_FREQ * (2**(semitonesFromC4 / 12));
-            return frequency;
+            // 360 é o Dó da oitava de cima (não volta para o 0)
+            const semitonesFromC4 = (hue / 360.0) * 12;
+            return C4_FREQ * (2**(semitonesFromC4 / 12));
+        }
+
+        function corDaNota(hue) {
+            return `hsl(${hue % 360}, 100%, 70%)`;
         }
 
         function createNoteBubble(hue, key) {
             const bubble = document.createElement('div');
             bubble.classList.add('note-bubble');
 
-            const color = `hsl(${hue}, 100%, 80%)`;
-            const size = Math.random() * 50 + 50; 
-            
+            const size = Math.random() * 50 + 50;
             bubble.style.width = `${size}px`;
             bubble.style.height = `${size}px`;
-            bubble.style.backgroundColor = color;
-            
-            const stageWidth = stage.clientWidth;
+            bubble.style.backgroundColor = `hsl(${hue % 360}, 100%, 80%)`;
+
             // Posição X baseada na nota para manter a ordem espectral
-            const initialX = (stageWidth / 2) + ((keyToHue[key] - 180) * (stageWidth / 360 / 2)); 
-            
-            bubble.style.left = `${initialX}px`;
-            bubble.style.bottom = `0px`; 
-            
+            const stageWidth = stage.clientWidth;
+            const x = (keyToHue[key] / 360) * (stageWidth - size);
+            bubble.style.left = `${x}px`;
+            bubble.style.bottom = `0px`;
+
             stage.appendChild(bubble);
 
             setTimeout(() => {
-                bubble.style.transform = `translateY(-${stage.clientHeight}px) scale(0.5)`; 
+                bubble.style.transform = `translateY(-${stage.clientHeight}px) scale(0.5)`;
                 bubble.style.opacity = '0';
             }, 50);
 
-            setTimeout(() => {
-                bubble.remove();
-            }, 900);
+            setTimeout(() => bubble.remove(), 900);
         }
 
         function playNote(key, hue) {
-            const frequency = hueToFrequency(hue);
-            
+            if (activeOscillators[key]) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
             const oscillator = audioCtx.createOscillator();
             const gainNode = audioCtx.createGain();
-            
             oscillator.connect(gainNode);
             gainNode.connect(audioCtx.destination);
-            
-            oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
-            oscillator.type = 'triangle'; // Usa onda triangular para um som mais suave que o quadrado
+
+            oscillator.frequency.setValueAtTime(hueToFrequency(hue), audioCtx.currentTime);
+            oscillator.type = 'triangle'; // Onda triangular: som suave
 
             gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-            gainNode.gain.linearRampToValueAtTime(0.4, audioCtx.currentTime + 0.01); 
+            gainNode.gain.linearRampToValueAtTime(0.4, audioCtx.currentTime + 0.01);
 
             oscillator.start(0);
-            
+
             activeOscillators[key] = { oscillator, gainNode };
+            botaoDaTecla[key].classList.add('tocando');
             createNoteBubble(hue, key);
         }
 
@@ -152,45 +114,99 @@
             if (activeOscillators[key]) {
                 const { oscillator, gainNode } = activeOscillators[key];
                 const now = audioCtx.currentTime;
-                
+
                 // Release (decaimento do som)
                 gainNode.gain.cancelScheduledValues(now);
-                gainNode.gain.linearRampToValueAtTime(0, now + 0.2); 
-                
+                gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+                gainNode.gain.linearRampToValueAtTime(0, now + 0.2);
                 oscillator.stop(now + 0.2);
-                
+
                 delete activeOscillators[key];
             }
+            botaoDaTecla[key].classList.remove('tocando');
         }
 
-        // --- EVENT LISTENERS DE TECLADO ---
+        // --- TECLAS NA TELA (mouse e toque, vários dedos ao mesmo tempo) ---
+
+        const botaoDaTecla = {};
+        const teclaDoPonteiro = {}; // pointerId -> tecla
+
+        Object.entries(keyToHue).forEach(([key, hue], i) => {
+            const botao = document.createElement('button');
+            botao.type = 'button';
+            botao.className = 'tecla';
+            botao.dataset.key = key;
+            botao.style.backgroundColor = corDaNota(hue);
+            botao.setAttribute('aria-label', `${nomesNotas[i]} (tecla ${key.toUpperCase()})`);
+            botao.innerHTML = `<span>${nomesNotas[i]}</span><span class="letra">${key}</span>`;
+            teclas.appendChild(botao);
+            botaoDaTecla[key] = botao;
+        });
+
+        function teclaEm(x, y) {
+            const el = document.elementFromPoint(x, y);
+            const botao = el && el.closest('.tecla');
+            return botao ? botao.dataset.key : null;
+        }
+
+        function soltarPonteiro(id) {
+            const key = teclaDoPonteiro[id];
+            delete teclaDoPonteiro[id];
+            if (key && !Object.values(teclaDoPonteiro).includes(key)) stopNote(key);
+        }
+
+        teclas.addEventListener('pointerdown', (e) => {
+            const key = teclaEm(e.clientX, e.clientY);
+            if (!key) return;
+            e.preventDefault();
+            try { teclas.setPointerCapture(e.pointerId); } catch (erro) { /* ponteiro já foi solto */ }
+            teclaDoPonteiro[e.pointerId] = key;
+            playNote(key, keyToHue[key]);
+        });
+
+        // Arrastar o dedo de uma tecla para outra troca a nota (glissando)
+        teclas.addEventListener('pointermove', (e) => {
+            if (!(e.pointerId in teclaDoPonteiro)) return;
+            const key = teclaEm(e.clientX, e.clientY);
+            if (key && key !== teclaDoPonteiro[e.pointerId]) {
+                soltarPonteiro(e.pointerId);
+                teclaDoPonteiro[e.pointerId] = key;
+                playNote(key, keyToHue[key]);
+            }
+        });
+
+        ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(tipo => {
+            teclas.addEventListener(tipo, (e) => soltarPonteiro(e.pointerId));
+        });
+
+        // Teclado acessível: Enter/Espaço numa tecla focada também tocam
+        teclas.addEventListener('keydown', (e) => {
+            const botao = e.target.closest('.tecla');
+            if (botao && (e.key === 'Enter' || e.key === ' ') && !e.repeat) {
+                e.preventDefault();
+                playNote(botao.dataset.key, keyToHue[botao.dataset.key]);
+                setTimeout(() => stopNote(botao.dataset.key), 300);
+            }
+        });
+
+        // --- TECLADO DO COMPUTADOR ---
 
         document.addEventListener('keydown', (event) => {
             const key = event.key.toLowerCase();
-            
-            if (event.repeat || activeOscillators[key]) {
-                return;
-            }
-
+            if (event.repeat || event.ctrlKey || event.metaKey || event.altKey) return;
             if (keyToHue.hasOwnProperty(key)) {
-                event.preventDefault(); 
-                
-                if (audioCtx.state === 'suspended') {
-                    audioCtx.resume();
-                }
-                
-                const hue = keyToHue[key];
-                playNote(key, hue);
+                event.preventDefault();
+                playNote(key, keyToHue[key]);
             }
         });
 
         document.addEventListener('keyup', (event) => {
             const key = event.key.toLowerCase();
-            
-            if (keyToHue.hasOwnProperty(key)) {
-                stopNote(key);
-            }
+            if (keyToHue.hasOwnProperty(key)) stopNote(key);
         });
+
+        // Se a janela perder o foco, nenhuma nota fica presa tocando
+        window.addEventListener('blur', () => Object.keys(activeOscillators).forEach(stopNote));
     </script>
 </body>
 </html>

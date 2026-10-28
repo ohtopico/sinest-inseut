@@ -91,10 +91,15 @@ def index():
     # Como o index.html está no mesmo diretório, ele é servido diretamente
     return send_from_directory(app.root_path, 'index.html')
 
-@app.route('/styles.css')
-def serve_css():
-    """Rota para servir o arquivo CSS."""
-    return send_from_directory(app.root_path, 'styles.css')
+# Arquivos da interface que ficam na mesma pasta do app.py
+ARQUIVOS_PUBLICOS = {'index.html', 'gerador_mobile.html', 'teclado_mobile.html', 'styles.css', 'desenho.js'}
+
+@app.route('/<nome>')
+def serve_static_file(nome):
+    """Rota para servir o CSS, o JS e as outras páginas (desenho sem servidor e teclado)."""
+    if nome not in ARQUIVOS_PUBLICOS:
+        return jsonify({'error': 'Arquivo não encontrado.'}), 404
+    return send_from_directory(app.root_path, nome)
 
 @app.route('/generate-sound', methods=['POST'])
 def handle_drawing_data():
@@ -127,4 +132,4 @@ if __name__ == '__main__':
     print("--- Servidor do Sintetizador Colorido ---")
     print(f"Acesse: http://127.0.0.1:5000/")
     # Debug=True para recarregar automaticamente durante o desenvolvimento
-    app.run(debug=True)
+    app.run(debug=True)
